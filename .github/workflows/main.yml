@@ -30,9 +30,39 @@ jobs:
 
     - name: Run E2E tests
       run: |
-        curl -v http://localhost:8080/api/students
-        curl -v -X POST -H "Content-Type: application/json" \
-            -d '{"name":"John"}' http://localhost:8080/api/students
+        echo "Creating student..."
+        created=$(curl -s -X POST http://localhost:8080/api/students \
+          -H "Content-Type: application/json" \
+          -d '{
+            "name": "John Doe",
+            "birthDate": "2000-05-15",
+            "email": "john.doe@example.com",
+            "phoneNumber": "+1234567890",
+            "gender": "Male",
+            "address": "123 Main Street, Cityville"
+          }')
+        
+        echo "Response from POST:"
+        echo "$created"
+    
+        # Extract the ID of the created student
+        id=$(echo "$created" | jq -r '.id')
+        echo "Created student ID: $id"
+    
+        echo "Fetching student by ID..."
+        fetched=$(curl -s http://localhost:8080/api/students/$id)
+    
+        echo "Response from GET by ID:"
+        echo "$fetched"
+    
+        # Verify a field (optional)
+        fetched_name=$(echo "$fetched" | jq -r '.name')
+        if [ "$fetched_name" != "John Doe" ]; then
+          echo "❌ Name does not match: expected 'John Doe', got '$fetched_name'"
+          exit 1
+        else
+          echo "✅ Name matches: $fetched_name"
+        fi
 
     - name: Run integration/unit tests
       run: ./mvnw test
