@@ -1,0 +1,35 @@
+name: E2E Tests
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  e2e-tests:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up JDK 21
+      uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: 21
+
+    - name: Build and start Spring Boot app
+      run: |
+        ./mvnw clean package -DskipTests
+        java -jar target/*.jar --spring.profiles.active=test &
+        sleep 20  # wait for server to start
+
+    - name: Run E2E tests
+      run: |
+        curl -v http://localhost:8080/api/students
+        curl -v -X POST -H "Content-Type: application/json" \
+            -d '{"name":"John"}' http://localhost:8080/api/students
+
+    - name: Run integration/unit tests
+      run: ./mvnw test
